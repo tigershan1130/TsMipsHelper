@@ -6,13 +6,16 @@
 
 int main()
 {
+    // making something similar to this.
+    // https://www3.ntu.edu.sg/home/smitha/FYP_Gerald/rijTypeSimulatorInput.html
+
     //TSMipsHelper::TsBinary Data = TSMipsHelper::TsBinary("11000");
 
     //int ConvertedDecimal = Data.ConvertToDecimal();
 
     //std::cout << "Conversion Example: " << endl;
     //std::cout << Data.BinaryData << " Converted Decimal: " << ConvertedDecimal << " 2's Complement: " << Data.ConvertTwosComplement() << " HEX: " << Data.ConvertToHex() << endl << endl;
-    string InputString = "add $v0 $a0 $v0";
+    string InputString = "add $t4 $t0 $t1";
 
     std::cout << "Input Instruction: " << InputString << endl;
     
@@ -20,8 +23,7 @@ int main()
 
     MipsAssembler.SetInput(InputString);
 
-    TSMipsHelper::TsBinary Answer = TSMipsHelper::TsBinary(MipsAssembler.GetBinary());
-           
     // TODO: ConvertToHex() currently not working correctly
-    std::cout << "Assembler machine code(Binary): " << MipsAssembler.GetBinary() << " HEX: " << Answer.ConvertToHex() << endl;
+    std::cout << "Assembler machine code(Binary): " << MipsAssembler.GetBinary() << " HEX: " << MipsAssembler.GetHex() << endl;
+
 }

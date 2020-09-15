@@ -326,7 +326,6 @@ namespace TSMipsHelper
 	// all reference for mips found at https://inst.eecs.berkeley.edu/~cs61c/resources/MIPS_Green_Sheet.pdf
 	class TsMipsAssemblerUtil 
 	{
-
 	public:
 		std::vector<string>	DecodeString;
 
@@ -349,29 +348,40 @@ namespace TSMipsHelper
 			DecodeOp(DecodeString[0]);
 
 			//std::cout << CurrentType << OpCode.BinaryData << " func: " << FunctCode.BinaryData<< endl;
-
-
 			if (CurrentType == InstructionType::R)
 			{
 				// make sure we arrange rs, rt, rd order
 				// when we input code: it is like add $rd $rs $rt;
 				// but when arrange in machine code binary: it is add $rs $rt $rd shamt functCode
 
-				RD = DecodeRegister(DecodeString[1]);
-				RD.TrimData(5);
-
+				if (make_lowercase(DecodeString[0]) != "jr")
+				{
+					RD = DecodeRegister(DecodeString[1]);
+					RD.TrimData(5);
+				}
 				//std::cout << RD.BinaryData << endl;
 
-				RS = DecodeRegister(DecodeString[2]);
-				RS.TrimData(5);
-
+				if (make_lowercase(DecodeString[0]) != "jr")
+				{
+					RS = DecodeRegister(DecodeString[2]);
+					RS.TrimData(5);
+				}
 				//cout << RS.BinaryData << endl;
 
-				RT = DecodeRegister(DecodeString[3]);
-				RT.TrimData(5);
+				if (make_lowercase(DecodeString[0]) != "jr")
+				{
+					RT = DecodeRegister(DecodeString[3]);
+					RT.TrimData(5);
+				}
 
 				//cout << RT.BinaryData << endl;
+				if (make_lowercase(DecodeString[0]) == "jr")
+				{
+					RS = DecodeRegister(DecodeString[1]);
+					RS.TrimData(5);
+				}
 
+				// TODO: haven't went through this in class yet
 				Shamt = TsBinary("00000");
 
 				if (RD.BinaryData == "" || RS.BinaryData == "" || RT.BinaryData == "")
@@ -388,6 +398,31 @@ namespace TSMipsHelper
 				// function code should already be set.
 			}
 
+			// rt = rs + signextImm (2's complement)
+			else if (CurrentType == InstructionType::I)
+			{				
+				RS = DecodeRegister(DecodeString[1]);
+				RS.TrimData(5);
+			
+				RT = DecodeRegister(DecodeString[2]);
+				RT.TrimData(5);
+				
+				ImmediateValue = TsBinary(TsHex(DecodeString[3]).ConvertToBinary());
+				ImmediateValue.TrimData(16);
+
+				std::cout << endl << " DEBUG INFO: " << endl;
+				std::cout << " OPCode " << OpCode.BinaryData << endl;
+				std::cout << " RS Decimal: " << RS.ConvertToDecimal() << " Binary: " << RS.BinaryData << endl;
+				std::cout << " RT Decimal: " << RT.ConvertToDecimal() << " Binary: " << RT.BinaryData << endl;
+				std::cout << " Immediate Value: " << ImmediateValue.ConvertToHex() << " Binary: " << ImmediateValue.BinaryData << endl;
+				std::cout << endl;
+			}
+
+			else if (CurrentType == InstructionType::J)
+			{
+				
+			}
+
 			return true;
 		}
 
@@ -396,7 +431,18 @@ namespace TSMipsHelper
 			string Data = "";
 			if (isLittleIndian)
 			{
-				Data = OpCode.BinaryData + " "  + RS.BinaryData + " " + RT.BinaryData + " " + RD.BinaryData + " " + Shamt.BinaryData + " " + FunctCode.BinaryData;
+				if (CurrentType == InstructionType::R)
+				{
+					Data = OpCode.BinaryData + " " + RS.BinaryData + " " + RT.BinaryData + " " + RD.BinaryData + " " + Shamt.BinaryData + " " + FunctCode.BinaryData;
+				}
+				else if (CurrentType == InstructionType::I)
+				{
+					Data = OpCode.BinaryData + " " + RS.BinaryData + " " + RT.BinaryData + " " + ImmediateValue.BinaryData;
+				}
+				else if (CurrentType == InstructionType::J)
+				{
+					Data = OpCode.BinaryData + " " + Address.BinaryData;
+				}
 			}
 
 			return Data;
@@ -407,10 +453,28 @@ namespace TSMipsHelper
 			string Data = "";
 			if (isLittleIndian)
 			{
-				Data = OpCode.ConvertToHex() + " " + RS.ConvertToHex() + " " + RT.ConvertToHex() + " " + RD.ConvertToHex() + " " + Shamt.ConvertToHex() + " " + FunctCode.ConvertToHex();
+				if (CurrentType == InstructionType::R)
+				{
+					Data = OpCode.BinaryData + RS.BinaryData + RT.BinaryData + RD.BinaryData + Shamt.BinaryData + FunctCode.BinaryData;
+					TsBinary binary = TsBinary(Data);
+					Data = binary.ConvertToHex();
+				}
+				else if (CurrentType == InstructionType::I)
+				{
+					Data = OpCode.BinaryData + RS.BinaryData + RT.BinaryData + ImmediateValue.BinaryData;
+					TsBinary binary = TsBinary(Data);
+					Data = binary.ConvertToHex();
+				}
+				else if (CurrentType == InstructionType::J)
+				{
+					Data = OpCode.BinaryData + Address.BinaryData;
+					TsBinary binary = TsBinary(Data);
+					Data = binary.ConvertToHex();
+				}
 			}
 
 			return Data;
+
 		}
 
 		// register should $ sign infront
@@ -529,6 +593,23 @@ namespace TSMipsHelper
 			}
 #pragma endregion
 			
+			else if (make_lowercase(registerS) == "$ra")
+			{
+				Data = ConvertDecimalToBinary(31);
+			}
+			else if (make_lowercase(registerS) == "$fp")
+			{
+				Data = ConvertDecimalToBinary(30);
+			}
+			else if (make_lowercase(registerS) == "$sp")
+			{
+			Data = ConvertDecimalToBinary(29);
+			}
+			else if (make_lowercase(registerS) == "$gp")
+			{
+			Data = ConvertDecimalToBinary(28);
+			}
+
 			return TsBinary(Data);
 
 		}
@@ -573,17 +654,28 @@ namespace TSMipsHelper
 			}
 			else if (make_lowercase(op) == "jr")
 			{
+				OpCode = TsBinary("000000");
+				FunctCode = TsBinary(TsHex("08").ConvertToBinary());
+				RD.SetData("00000");
+				RT.SetData("00000");
+
+				FunctCode.TrimData(6);
+
 
 				CurrentType = InstructionType::R;
 			}
 			else if (make_lowercase(op) == "nor")
 			{
-
+				OpCode = TsBinary("000000");
+				FunctCode = TsBinary(TsHex("27").ConvertToBinary());
+				FunctCode.TrimData(6);
 				CurrentType = InstructionType::R;
 			}
 			else if (make_lowercase(op) == "or")
 			{
-
+				OpCode = TsBinary("000000");
+				FunctCode = TsBinary(TsHex("25").ConvertToBinary());
+				FunctCode.TrimData(6);
 				CurrentType = InstructionType::R;
 			}
 			// still to encode : slt, sltu, sll, srl for R
@@ -593,82 +685,135 @@ namespace TSMipsHelper
 #pragma region I region decode
 			else if (make_lowercase(op) == "addi")
 			{
+				OpCode = TsBinary(TsHex("8").ConvertToBinary());
+				OpCode.TrimData(6);
+
 				CurrentType = InstructionType::I;
 			}
 			else if (make_lowercase(op) == "addiu")
 			{
+				OpCode = TsBinary(TsHex("9").ConvertToBinary());
+				OpCode.TrimData(6);
+
 				CurrentType = InstructionType::I;
 			}
 			else if (make_lowercase(op) == "andi")
 			{
+				OpCode = TsBinary(TsHex("C").ConvertToBinary());
+				OpCode.TrimData(6);
+
 				CurrentType = InstructionType::I;
 			}
 			else if (make_lowercase(op) == "beq")
 			{
+				OpCode = TsBinary(TsHex("4").ConvertToBinary());
+				OpCode.TrimData(6);
+
 				CurrentType = InstructionType::I;
 			}
 			else if (make_lowercase(op) == "bne")
 			{
+				OpCode = TsBinary(TsHex("5").ConvertToBinary());
+				OpCode.TrimData(6);
+
 				CurrentType = InstructionType::I;
 			}
 			else if (make_lowercase(op) == "lbu")
 			{
+				OpCode = TsBinary(TsHex("24").ConvertToBinary());
+				OpCode.TrimData(6);
+
 				CurrentType = InstructionType::I;
 			}
 			else if (make_lowercase(op) == "lhu")
 			{
+				OpCode = TsBinary(TsHex("25").ConvertToBinary());
+				OpCode.TrimData(6);
+
 				CurrentType = InstructionType::I;
 			}
 			else if (make_lowercase(op) == "ll")
 			{
+				OpCode = TsBinary(TsHex("30").ConvertToBinary());
+				OpCode.TrimData(6);
+
 				CurrentType = InstructionType::I;
 			}
 			else if (make_lowercase(op) == "lui")
 			{
+				OpCode = TsBinary(TsHex("F").ConvertToBinary());
+				OpCode.TrimData(6);
+
 				CurrentType = InstructionType::I;
 			}
 			else if (make_lowercase(op) == "lw")
 			{
+				OpCode = TsBinary(TsHex("23").ConvertToBinary());
+				OpCode.TrimData(6);
+
 				CurrentType = InstructionType::I;
 			}
 			else if (make_lowercase(op) == "ori")
 			{
+				OpCode = TsBinary(TsHex("D").ConvertToBinary());
+				OpCode.TrimData(6);
+
 				CurrentType = InstructionType::I;
 			}
 			else if (make_lowercase(op) == "slti")
 			{
+				OpCode = TsBinary(TsHex("A").ConvertToBinary());
+				OpCode.TrimData(6);
+
 				CurrentType = InstructionType::I;
 			}
 			else if (make_lowercase(op) == "sltiu")
 			{
+				OpCode = TsBinary(TsHex("B").ConvertToBinary());
+				OpCode.TrimData(6);
+
 				CurrentType = InstructionType::I;
 			}
 			else if (make_lowercase(op) == "sb")
 			{
+				OpCode = TsBinary(TsHex("28").ConvertToBinary());
+				OpCode.TrimData(6);
+
 				CurrentType = InstructionType::I;
 			}
 			else if (make_lowercase(op) == "sc")
 			{
+				OpCode = TsBinary(TsHex("38").ConvertToBinary());
+				OpCode.TrimData(6);
+
 				CurrentType = InstructionType::I;
 			}
 			else if (make_lowercase(op) == "sh")
 			{
+				OpCode = TsBinary(TsHex("29").ConvertToBinary());
+				OpCode.TrimData(6);
+
 				CurrentType = InstructionType::I;
 			}
 			else if (make_lowercase(op) == "sw")
 			{
+				OpCode = TsBinary(TsHex("2B").ConvertToBinary());
+				OpCode.TrimData(6);
+
 				CurrentType = InstructionType::I;
 			}
 #pragma endregion
 
-#pragma region I region decode
+#pragma region J region decode
 			else if (make_lowercase(op) == "j")
 			{
-			CurrentType = InstructionType::J;
+				OpCode = TsBinary("000010");
+				CurrentType = InstructionType::J;
 			}
 			else if (make_lowercase(op) == "jal")
 			{
-			CurrentType = InstructionType::J;
+				OpCode = TsBinary("000011");
+				CurrentType = InstructionType::J;
 			}
 #pragma endregion
 		}
@@ -683,7 +828,7 @@ namespace TSMipsHelper
 			FunctCode = TsBinary();
 			Address = TsBinary();
 			Shamt = TsBinary();
-			ImediateValue = TsBinary();
+			ImmediateValue = TsBinary();
 
 			CurrentType = InstructionType::R;
 		}
@@ -696,7 +841,7 @@ namespace TSMipsHelper
 		TsBinary FunctCode; // for distic same op but different functions
 		TsBinary Address;
 		TsBinary Shamt;
-		TsBinary ImediateValue; // this value is a two's complement for addi.
+		TsBinary ImmediateValue; // this value is a two's complement for addi. 16 bit two's complement number, between -32769 and  32768
 
 		InstructionType CurrentType;
 	};
