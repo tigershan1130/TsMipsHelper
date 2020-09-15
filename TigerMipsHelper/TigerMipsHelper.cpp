@@ -2,19 +2,26 @@
 //
 
 #include <iostream>
+#include "TsMipsHelper.h"
 
 int main()
 {
-    std::cout << "Hello World!\n";
+    //TSMipsHelper::TsBinary Data = TSMipsHelper::TsBinary("11000");
+
+    //int ConvertedDecimal = Data.ConvertToDecimal();
+
+    //std::cout << "Conversion Example: " << endl;
+    //std::cout << Data.BinaryData << " Converted Decimal: " << ConvertedDecimal << " 2's Complement: " << Data.ConvertTwosComplement() << " HEX: " << Data.ConvertToHex() << endl << endl;
+    string InputString = "add $v0 $a0 $v0";
+
+    std::cout << "Input Instruction: " << InputString << endl;
+    
+    TSMipsHelper::TsMipsAssemblerUtil MipsAssembler = TSMipsHelper::TsMipsAssemblerUtil();
+
+    MipsAssembler.SetInput(InputString);
+
+    TSMipsHelper::TsBinary Answer = TSMipsHelper::TsBinary(MipsAssembler.GetBinary());
+           
+    // TODO: ConvertToHex() currently not working correctly
+    std::cout << "Assembler machine code(Binary): " << MipsAssembler.GetBinary() << " HEX: " << Answer.ConvertToHex() << endl;
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
