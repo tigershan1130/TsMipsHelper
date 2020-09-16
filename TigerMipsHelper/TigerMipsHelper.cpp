@@ -15,7 +15,7 @@ int main()
 
     //std::cout << "Conversion Example: " << endl;
     //std::cout << Data.BinaryData << " Converted Decimal: " << ConvertedDecimal << " 2's Complement: " << Data.ConvertTwosComplement() << " HEX: " << Data.ConvertToHex() << endl << endl;
-    string InputString = "add $t4 $t0 $t1";
+    string InputString = "j 1234";
 
     std::cout << "Input Instruction: " << InputString << endl;
     

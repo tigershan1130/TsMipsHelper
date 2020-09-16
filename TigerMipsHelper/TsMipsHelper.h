@@ -252,9 +252,11 @@ namespace TSMipsHelper
 		// this can cause over flow, we can store previous binary 
 		// after trim data we can compare this binary with previous binary
 		// if it's not the same number, then there is overflow when trim bits(missing 1s, so 0s infront should be ok)
-		void TrimData(unsigned int length)
+		void TrimData(unsigned int length, bool signedExtension = false)
 		{
 			std::stack<char> StackBinary;
+
+			char FirstChar = BinaryData[0];
 
 			for (size_t i = BinaryData.size() -1 ; i > 0; i--)
 			{
@@ -276,9 +278,10 @@ namespace TSMipsHelper
 				unsigned int needDigits = length - BinaryData.size(); 
 
 				string TempData = "";
+
 				for (int i = 0; i < needDigits; i++)
 				{
-					TempData += '0';
+					TempData += (signedExtension) ? FirstChar : '0';
 				}
 
 				BinaryData = TempData + BinaryData;
@@ -401,26 +404,59 @@ namespace TSMipsHelper
 			// rt = rs + signextImm (2's complement)
 			else if (CurrentType == InstructionType::I)
 			{				
-				RS = DecodeRegister(DecodeString[1]);
-				RS.TrimData(5);
-			
-				RT = DecodeRegister(DecodeString[2]);
-				RT.TrimData(5);
-				
-				ImmediateValue = TsBinary(TsHex(DecodeString[3]).ConvertToBinary());
-				ImmediateValue.TrimData(16);
+				string OpCodeString = make_lowercase(DecodeString[0]);
 
-				std::cout << endl << " DEBUG INFO: " << endl;
-				std::cout << " OPCode " << OpCode.BinaryData << endl;
-				std::cout << " RS Decimal: " << RS.ConvertToDecimal() << " Binary: " << RS.BinaryData << endl;
-				std::cout << " RT Decimal: " << RT.ConvertToDecimal() << " Binary: " << RT.BinaryData << endl;
-				std::cout << " Immediate Value: " << ImmediateValue.ConvertToHex() << " Binary: " << ImmediateValue.BinaryData << endl;
-				std::cout << endl;
+				if (OpCodeString == "addi" || OpCodeString == "addiu" || OpCodeString == "slti" || OpCodeString == "sltiu")
+				{
+					RS = DecodeRegister(DecodeString[2]);
+					RS.TrimData(5);
+
+					RT = DecodeRegister(DecodeString[1]);
+					RT.TrimData(5);
+
+					ImmediateValue = TsBinary(TsHex(DecodeString[3]).ConvertToBinary());
+
+					// we need to sign extend
+					ImmediateValue.TrimData(16, true);
+
+					std::cout << endl << " DEBUG INFO: " << endl;
+					std::cout << " OPCode " << OpCode.BinaryData << endl;
+					std::cout << " RS Decimal: " << RS.ConvertToDecimal() << " Binary: " << RS.BinaryData << endl;
+					std::cout << " RT Decimal: " << RT.ConvertToDecimal() << " Binary: " << RT.BinaryData << endl;
+					std::cout << " Immediate Value: " << ImmediateValue.ConvertToHex() << " Binary: " << ImmediateValue.BinaryData << endl;
+					std::cout << endl;
+				}
+				if (OpCodeString == "andi")
+				{
+					RS = DecodeRegister(DecodeString[2]);
+					RS.TrimData(5);
+
+					RT = DecodeRegister(DecodeString[1]);
+					RT.TrimData(5);
+
+					ImmediateValue = TsBinary(TsHex(DecodeString[3]).ConvertToBinary());
+
+					// we need to zero extend
+					ImmediateValue.TrimData(16);
+
+					std::cout << endl << " DEBUG INFO: " << endl;
+					std::cout << " OPCode " << OpCode.BinaryData << endl;
+					std::cout << " RS Decimal: " << RS.ConvertToDecimal() << " Binary: " << RS.BinaryData << endl;
+					std::cout << " RT Decimal: " << RT.ConvertToDecimal() << " Binary: " << RT.BinaryData << endl;
+					std::cout << " Immediate Value: " << ImmediateValue.ConvertToHex() << " Binary: " << ImmediateValue.BinaryData << endl;
+					std::cout << endl;
+				}
 			}
-
+			// 
 			else if (CurrentType == InstructionType::J)
 			{
-				
+				string OpCodeString = make_lowercase(DecodeString[0]);
+
+				if (OpCodeString == "j")
+				{
+					Address = TsBinary(TsHex(DecodeString[1]).ConvertToBinary());
+					Address.TrimData(26);
+				}
 			}
 
 			return true;
